@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">HomeWand</string>
+    <string name="hello">This is text</string>
+    <string name="button">Press Me</string>
+    <string name="edit_message">Do the editing</string>
+    <string name="button_send">SEND!</string>
+</resources>
