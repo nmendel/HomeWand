@@ -3,5 +3,8 @@
     <string name="hello">This is text</string>
     <string name="button">Press Me</string>
     <string name="edit_message">Do the editing</string>
-    <string name="button_send">SEND!</string>
+    <string name="button_send">Start Capture</string>
+    <string name="root_summary">cloudy with a chance of &#8230;</string>
+    <string name="key_logged_in">logged_in</string>
+    <string name="internal_storage">Internal storage</string>
 </resources>

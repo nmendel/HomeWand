@@ -1,23 +1,39 @@
 package edu.gmu.mendel.homewand;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
-import android.support.v7.app.AppCompatActivity;
+import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.os.SystemClock;
+import android.provider.Settings;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import java.io.BufferedReader;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
-public class DisplayActivity extends AppCompatActivity {
+public class DisplayActivity extends AppCompatActivity implements SensorEventListener {
 
-    private static final int READ_REQUEST_CODE = 42;
+    public static final String ACCEL_HEADER = "x,y,z\n";
+    public static final String GYRO_HEADER = "x,y,z\n";
+
+    private SensorManager sensorManager;
+    private View view;
+    private boolean color = false;
+    private long lastUpdate;
+
+    private String accelFilename;
+    private String gyroFilename;
+    private FileOutputStream accelOutputStream;
+    private FileOutputStream gyroOutputStream;
+
+    private int xx = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,91 +41,138 @@ public class DisplayActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display);
 
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        lastUpdate = System.currentTimeMillis();
+
         // Get the Intent that started this activity and extract the string
         Intent intent = getIntent();
         String message = intent.getStringExtra(HomeWandActivity.SENSOR_VALS);
+
+        view = findViewById(R.id.textView2);
+        view.setBackgroundColor(Color.BLUE);
 
         // Capture the layout's TextView and set the string as its text
         TextView textView = findViewById(R.id.textView2);
         textView.setText(message);
 
+        long time = System.currentTimeMillis();
         try {
             Log.i("4","save_file");
-            FileOutputStream outputStream = openFileOutput("abc.txt", Context.MODE_PRIVATE);
-            outputStream.write(message.getBytes());
-            outputStream.close();
+            Log.i("4",getFilesDir().toString());
+
+            accelFilename = time + "-accel.csv";
+            accelOutputStream = openFileOutput(accelFilename, Context.MODE_PRIVATE);
+            accelOutputStream.write(ACCEL_HEADER.getBytes());
+
+            gyroFilename = time + "-accel.csv";
+            gyroOutputStream = openFileOutput(gyroFilename, Context.MODE_PRIVATE);
+            gyroOutputStream.write(GYRO_HEADER.getBytes());
+            //outputStream.close();
         } catch (Exception e) {
             Log.e("error","failed to save file", e);
         }
-
-        performFileSearch();
-    }
-
-
-    /**
-     * Fires an intent to spin up the "file chooser" UI and select an image.
-     */
-    public void performFileSearch() {
-
-        // ACTION_OPEN_DOCUMENT is the intent to choose a file via the system's file
-        // browser.
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-
-        // Filter to only show results that can be "opened", such as a
-        // file (as opposed to a list of contacts or timezones)
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-
-        // Filter to show only images, using the image MIME data type.
-        // If one wanted to search for ogg vorbis files, the type would be "audio/ogg".
-        // To search for all documents available via installed storage providers,
-        // it would be "*/*".
-        intent.setType("*/*");
-
-        startActivityForResult(intent, READ_REQUEST_CODE);
     }
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode,
-                                 Intent resultData) {
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            getAccelerometer(event);
+        }
 
-        // The ACTION_OPEN_DOCUMENT intent was sent with the request code
-        // READ_REQUEST_CODE. If the request code seen here doesn't match, it's the
-        // response to some other intent, and the code below shouldn't run at all.
+        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            getGyroscope(event);
+        }
 
-        if (requestCode == READ_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            // The document selected by the user won't be returned in the intent.
-            // Instead, a URI to that document will be contained in the return intent
-            // provided to this method as a parameter.
-            // Pull that URI using resultData.getData().
-            Uri uri = null;
-            if (resultData != null) {
-                uri = resultData.getData();
-                Log.i("file_location", "Uri: " + uri.toString());
+    }
 
-                String fileData = readTextFromUri(uri);
-                Log.i("file_data", fileData);
+    private void getAccelerometer(SensorEvent event) {
+        float[] values = event.values;
+        // Movement
+        float x = values[0];
+        float y = values[1];
+        float z = values[2];
+
+        float accelationSquareRoot = (x * x + y * y + z * z)
+                / (SensorManager.GRAVITY_EARTH * SensorManager.GRAVITY_EARTH);
+        long actualTime = event.timestamp;
+        if (accelationSquareRoot >= 2 || true) //
+        {
+            if (actualTime - lastUpdate < 200) {
+                return;
             }
+            lastUpdate = actualTime;
+            if (color) {
+                view.setBackgroundColor(Color.GREEN);
+            } else {
+                view.setBackgroundColor(Color.RED);
+            }
+            color = !color;
+
+            try {
+                accelOutputStream.write(getValuesAsCsvRow(values).getBytes());
+            } catch (Exception e) {
+                Log.e("error","failed to save file", e);
+            }
+        }
+
+    }
+
+    private void getGyroscope(SensorEvent event) {
+        float[] values = event.values;
+        String row = getValuesAsCsvRow(values);
+
+        try {
+            if(xx < 10) {
+                view.setBackgroundColor(Color.DKGRAY);
+                gyroOutputStream.write(row.getBytes());
+                xx++;
+            }
+            else {
+                view.setBackgroundColor(Color.CYAN);
+                gyroOutputStream.write(row.getBytes());
+            }
+        } catch (Exception e) {
+            Log.e("error","failed to save file", e);
         }
     }
 
-    private String readTextFromUri(Uri uri) {
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    inputStream));
-            StringBuilder stringBuilder = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                stringBuilder.append(line);
+    public String getValuesAsCsvRow(float[] values) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < values.length; i++) {
+            builder.append(values[i]);
+            if(i < values.length - 1) {
+                builder.append(",");
             }
-
-            reader.close();
-            inputStream.close();
-
-            return stringBuilder.toString();
-        } catch(IOException e) {
-            Log.e("failed", "failed to open file", e);
-            return "";
         }
+        builder.append("\n");
+
+        return builder.toString();
+    }
+
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // register this class as a listener for the orientation and
+        // accelerometer sensors
+        sensorManager.registerListener(this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_NORMAL);
+
+        sensorManager.registerListener(this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+                SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    @Override
+    protected void onPause() {
+        // unregister listener
+        super.onPause();
+        sensorManager.unregisterListener(this);
     }
 }
