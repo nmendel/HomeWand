@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class DisplayActivity extends AppCompatActivity implements SensorEventListener {
 
@@ -72,6 +73,21 @@ public class DisplayActivity extends AppCompatActivity implements SensorEventLis
             Log.e("error","failed to save file", e);
         }
     }
+
+    /** Called when the user taps the Stop Capture button */
+    public void stopCapture(View view) {
+        Log.i("1","Pressed Stop");
+
+        try {
+            accelOutputStream.close();
+            gyroOutputStream.close();
+        } catch(IOException e) {
+            Log.e("error","failed to save file", e);
+        }
+
+        onBackPressed();
+    }
+
 
     @Override
     public void onSensorChanged(SensorEvent event) {

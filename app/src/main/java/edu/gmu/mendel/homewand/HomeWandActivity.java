@@ -28,7 +28,6 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -47,12 +46,12 @@ public class HomeWandActivity extends Activity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home_wand);
-        View view = findViewById(R.id.textView);
-        view.setBackgroundColor(Color.GREEN);
+        //View view = findViewById(R.id.textView);
+        //view.setBackgroundColor(Color.LTGRAY);
     }
 
     /** Called when the user taps the Start Capture button */
-    public void sendMessage(View view) {
+    public void startCapture(View view) {
         Log.i("1","Pressed Send");
         String brk = "break";
         Intent intent = new Intent(this, DisplayActivity.class);
