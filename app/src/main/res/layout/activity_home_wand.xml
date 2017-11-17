@@ -2,31 +2,56 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:visibility="visible">
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="startMotion"
+        android:layout_marginTop="20dp"
+        android:background="@color/colorStart"
+        android:onClick="startMotionActivity"
         android:text="Motion" />
 
     <Button
         android:id="@+id/button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="startCapture"
+        android:layout_marginTop="20dp"
+        android:background="@android:color/holo_blue_dark"
+        android:onClick="startCaptureActivity"
         android:text="@string/button_send" />
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@android:color/holo_blue_dark"
         android:onClick="openFile"
-        android:text="Manage Captures" />
+        android:text="View File" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@color/colorEnd"
+        android:onClick="deleteFile"
+        android:text="Delete File" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:background="@color/colorEnd"
+        android:text="Calculate Motions" />
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
     <TextView
         android:id="@+id/textView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="" />
+        android:layout_height="266dp" />
 
 </LinearLayout>

@@ -1,6 +1,7 @@
 
 package edu.gmu.mendel.homewand;
 
+import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -21,6 +22,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+
+import static android.provider.DocumentsContract.Document.FLAG_SUPPORTS_DELETE;
 
 public class HomeWandDocumentsProvider extends DocumentsProvider {
 
@@ -60,7 +63,8 @@ public class HomeWandDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_ROOT_ID, homeDir.getAbsolutePath());
         row.add(Root.COLUMN_DOCUMENT_ID, homeDir.getAbsolutePath());
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.internal_storage));
-        row.add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_CREATE);
+        // TODO: delete
+        row.add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_CREATE | FLAG_SUPPORTS_DELETE);
         row.add(Root.COLUMN_ICON, R.drawable.ic_provider);
         // These columns are optional
         row.add(Root.COLUMN_AVAILABLE_BYTES, homeDir.getFreeSpace());
@@ -174,7 +178,7 @@ public class HomeWandDocumentsProvider extends DocumentsProvider {
         row.add(Document.COLUMN_DISPLAY_NAME, file.getName());
         String mimeType = getDocumentType(file.getAbsolutePath());
         row.add(Document.COLUMN_MIME_TYPE, mimeType);
-        int flags = file.canWrite() ? Document.FLAG_SUPPORTS_DELETE | Document.FLAG_SUPPORTS_WRITE
+        int flags = file.canWrite() ? FLAG_SUPPORTS_DELETE | Document.FLAG_SUPPORTS_WRITE
                 : 0;
         // We only show thumbnails for image files - expect a call to
         // openDocumentThumbnail for each file that has

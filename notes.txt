@@ -1,17 +1,21 @@
 android 5.1
+api 23
 
-- timer
+
+- read papers?
+
 - make gyro work
 - make sure there are newlines
 - save time with data
-- get closing/ saving to work with button
-- make way to delete files
-- read papers?
 - start running statistics on output
+- button to recalculate all motions?
 
+- record sounds
+- play sounds
 
 
 /data/data/edu.gmu.mendel.homewand/files
 
 https://developer.android.com/guide/topics/providers/document-provider.html
 https://github.com/iPaulPro/aFileChooser
+https://developer.android.com/reference/android/os/CountDownTimer.html

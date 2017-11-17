@@ -8,31 +8,36 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.os.SystemClock;
-import android.provider.Settings;
+import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 
-public class DisplayActivity extends AppCompatActivity implements SensorEventListener {
+public class CaptureActivity extends AppCompatActivity implements SensorEventListener, View.OnClickListener {
 
     public static final String ACCEL_HEADER = "x,y,z\n";
     public static final String GYRO_HEADER = "x,y,z\n";
 
     private SensorManager sensorManager;
     private View view;
+    protected TextView mTextField;
+    protected EditText editText;
     private boolean color = false;
+    private boolean writing = false;
     private long lastUpdate;
 
-    private String accelFilename;
-    private String gyroFilename;
-    private FileOutputStream accelOutputStream;
-    private FileOutputStream gyroOutputStream;
+    private File accelFile;
+    private File gyroFile;
+    private BufferedWriter accelOutputStream;
+    private BufferedWriter gyroOutputStream;
 
     private int xx = 0;
 
@@ -40,52 +45,96 @@ public class DisplayActivity extends AppCompatActivity implements SensorEventLis
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("3","start_activity");
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_display);
+        setContentView(R.layout.activity_capture);
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         lastUpdate = System.currentTimeMillis();
 
-        // Get the Intent that started this activity and extract the string
-        Intent intent = getIntent();
-        String message = intent.getStringExtra(HomeWandActivity.SENSOR_VALS);
-
-        view = findViewById(R.id.textView2);
-        view.setBackgroundColor(Color.BLUE);
+        view = findViewById(R.id.captureTextView);
+        view.setBackgroundColor(Color.WHITE);
 
         // Capture the layout's TextView and set the string as its text
-        TextView textView = findViewById(R.id.textView2);
-        textView.setText(message);
+        mTextField = findViewById(R.id.captureTextView);
+        mTextField.setText("Create capture files to profile a motion");
+
+        editText = (EditText) findViewById(R.id.editText);
+        editText.setOnClickListener(this);
+    }
+
+
+    @Override
+    public void onClick(View v) {
+        editText.getText().clear();
+    }
+
+    public void startCapture(View view) {
+        Log.i("1","Pressed Start");
+        if(writing) {
+            return;
+        }
+
+        EditText editText = (EditText) findViewById(R.id.editText);
+        String message = editText.getText().toString();
+        Log.i("2",message);
+
+        File dir = new File(getFilesDir(), message);
+        if(!dir.exists()) {
+            Log.i("3","mkdir");
+            dir.mkdir();
+        }
 
         long time = System.currentTimeMillis();
         try {
             Log.i("4","save_file");
-            Log.i("4",getFilesDir().toString());
 
-            accelFilename = time + "-accel.csv";
-            accelOutputStream = openFileOutput(accelFilename, Context.MODE_PRIVATE);
-            accelOutputStream.write(ACCEL_HEADER.getBytes());
+            Log.i("4",dir.toString());
 
-            gyroFilename = time + "-accel.csv";
-            gyroOutputStream = openFileOutput(gyroFilename, Context.MODE_PRIVATE);
-            gyroOutputStream.write(GYRO_HEADER.getBytes());
-            //outputStream.close();
+            accelFile = new File(dir, time + "-accel.csv");
+            accelOutputStream = new BufferedWriter(new FileWriter(accelFile));
+            accelOutputStream.write(ACCEL_HEADER);
+
+
+            gyroFile = new File(dir, time + "-gyro.csv");
+            gyroOutputStream = new BufferedWriter(new FileWriter(gyroFile));
+            gyroOutputStream.write(GYRO_HEADER);
+            writing = true;
         } catch (Exception e) {
             Log.e("error","failed to save file", e);
         }
+
+        // Start up a timer for the capture
+        new CountDownTimer(3000, 100) {
+            public void onTick(long millisUntilFinished) {
+                mTextField.setText(String.format("%.1f",  (double)millisUntilFinished / 1000));
+            }
+
+            public void onFinish() {
+                mTextField.setText("Stopped");
+                if(writing) {
+                    stopCapture();
+                }
+            }
+        }.start();
     }
 
     /** Called when the user taps the Stop Capture button */
     public void stopCapture(View view) {
+        stopCapture();
+    }
+
+    public void stopCapture() {
         Log.i("1","Pressed Stop");
 
-        try {
-            accelOutputStream.close();
-            gyroOutputStream.close();
-        } catch(IOException e) {
-            Log.e("error","failed to save file", e);
-        }
+        if(writing) {
+            writing = false;
 
-        onBackPressed();
+            try {
+                accelOutputStream.close();
+                gyroOutputStream.close();
+            } catch (IOException e) {
+                Log.e("error", "failed to save file", e);
+            }
+        }
     }
 
 
@@ -124,10 +173,12 @@ public class DisplayActivity extends AppCompatActivity implements SensorEventLis
             }
             color = !color;
 
-            try {
-                accelOutputStream.write(getValuesAsCsvRow(values).getBytes());
-            } catch (Exception e) {
-                Log.e("error","failed to save file", e);
+            if(writing) {
+                try {
+                    accelOutputStream.write(getValuesAsCsvRow(values));
+                } catch (Exception e) {
+                    Log.e("error", "failed to save file", e);
+                }
             }
         }
 
@@ -137,18 +188,19 @@ public class DisplayActivity extends AppCompatActivity implements SensorEventLis
         float[] values = event.values;
         String row = getValuesAsCsvRow(values);
 
-        try {
-            if(xx < 10) {
-                view.setBackgroundColor(Color.DKGRAY);
-                gyroOutputStream.write(row.getBytes());
-                xx++;
+        if(writing) {
+            try {
+                if (xx < 10) {
+                    view.setBackgroundColor(Color.DKGRAY);
+                    gyroOutputStream.write(row);
+                    xx++;
+                } else {
+                    view.setBackgroundColor(Color.CYAN);
+                    gyroOutputStream.write(row);
+                }
+            } catch (Exception e) {
+                Log.e("error", "failed to save file", e);
             }
-            else {
-                view.setBackgroundColor(Color.CYAN);
-                gyroOutputStream.write(row.getBytes());
-            }
-        } catch (Exception e) {
-            Log.e("error","failed to save file", e);
         }
     }
 

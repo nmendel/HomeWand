@@ -24,7 +24,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".DisplayActivity"></activity>
+        <activity android:name=".CaptureActivity"></activity>
+        <activity android:name=".MotionActivity"></activity>
 
         <provider
             android:name="edu.gmu.mendel.homewand.HomeWandDocumentsProvider"
