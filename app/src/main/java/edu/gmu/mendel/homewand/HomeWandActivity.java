@@ -17,6 +17,8 @@
 package edu.gmu.mendel.homewand;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -28,17 +30,34 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileFilter;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class HomeWandActivity extends Activity {
 
-    public static final String SENSOR_VALS = "sensor_vals";
-    public static final String INTENT_DELETE_FLAG = "delete";
+    public static final String FILE_DATA_EXTRA = "file_data";
+    public static final String SIGNATURE_FILE = "signature.csv";
     private static final int READ_REQUEST_CODE = 42;
     private static final int DELETE_REQUEST_CODE = 43;
+
+    private List<String> excludedFolders = new ArrayList<String>();
+    public Map<String, List<Float>> signatures = new HashMap<String, List<Float>>();
+    public FilenameFilter signatureFileFilter = new FilenameFilter() {
+        public boolean accept(File dir, String name) {
+            return name.equals(SIGNATURE_FILE);
+        }
+    };
 
     /** Called when the activity is first created. */
     @Override
@@ -51,6 +70,13 @@ public class HomeWandActivity extends Activity {
         setContentView(R.layout.activity_home_wand);
         View view = findViewById(R.id.textView);
         view.setBackgroundColor(Color.LTGRAY);
+
+        excludedFolders.add("instant-run");
+        excludedFolders.add("aaa");
+        excludedFolders.add("abc");
+
+        // prepare the signatures variable from pre-calculated signature files
+        doCalculateMotions(false);
     }
 
     /** Called when the user taps the Start Capture button */
@@ -82,6 +108,150 @@ public class HomeWandActivity extends Activity {
 
         startActivityForResult(intent, DELETE_REQUEST_CODE);
     }
+
+    public void calculateMotions(View view) {
+        Log.i("1","Pressed Calculate Motions");
+
+        new AlertDialog.Builder(this)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .setTitle("Recalculate Motions")
+                .setMessage("Are you sure you want to recalculate HomeWand motions?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener()
+                {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        doCalculateMotions(true);
+                    }
+
+                })
+                .setNegativeButton("No", null)
+                .show();
+
+    }
+
+    public void doCalculateMotions(boolean overwriteExisting) {
+        Log.i("2","Calculate Motions");
+        File[] files = getFilesDir().listFiles();
+
+        // Loop through all non-excluded motion directories
+        Log.i("Files", "Size: "+ files.length);
+        for (int i = 0; i < files.length; i++)
+        {
+            if(!excludedFolders.contains(files[i].getName())) {
+                handleMotion(files[i], overwriteExisting);
+            }
+
+        }
+    }
+
+    public void handleMotion(File dir, boolean overwriteExisting) {
+        List<Float> motionSignature = null;
+
+        // check for existing signature file in each motion directory
+        File[] existingSignatureFile = dir.listFiles(signatureFileFilter);
+
+        Log.i("Files", "Directory Name: " + dir.getName() + ", Number of files: " + existingSignatureFile.length);
+        if(existingSignatureFile.length > 0) {
+            if(!overwriteExisting) {
+                // If no overwriting, read the signature file into memory
+                motionSignature = readSignatureFile(existingSignatureFile[0]);
+
+            } else {
+                // otherwise, delete and recalculate the motion signature
+                existingSignatureFile[0].delete();
+                motionSignature = calculateDirectorySignature(dir);
+            }
+        } else {
+            motionSignature = calculateDirectorySignature(dir);
+        }
+
+        signatures.put(dir.getName(), motionSignature);
+    }
+
+    public List<Float> readSignatureFile(File signatureFile) {
+        List<Float> motionSignature = new ArrayList<Float>();
+        Uri uri = Uri.fromFile(signatureFile);
+        String[] splitVals = readTextFromUri(uri).split(",");
+
+        // read existing signature file into motionSignature variable
+        for(int i = 0; i < splitVals.length; i++) {
+            motionSignature.add(new Float(splitVals[i]));
+        }
+
+        return motionSignature;
+    }
+
+    public List<Float> calculateDirectorySignature(File dir) {
+        List<Float> motionSignature = new ArrayList<Float>();
+        Map<String, Motion> motions = new HashMap<String, Motion>();
+        File[] motionFiles = dir.listFiles();
+
+        // TODO: group gyro and accel files for each signature
+        for (int i = 0; i < motionFiles.length; i++) {
+            String[] fileParts = motionFiles[i].getName().replace(".csv", "").split("-");
+            String fileTime = fileParts[0];
+            String fileType = fileParts[1];
+            Log.i("Files", "FileTime:" + fileTime + ", fileType: " + fileType);
+
+            // calculate signature for each file
+            Motion motion = motions.get(fileTime);
+            motions.put(fileTime, addDataToMotion(motion, fileType, fileTime, motionFiles[i]));
+        }
+
+        // calculate motion signature using all files and write it to signature file
+        motionSignature = calculateMotionSignature(motions);
+        // TODO: writing disabled
+        //writeSignatureFile(dir, motionSignature);
+
+        return motionSignature;
+    }
+
+    // TODO: doesn't make sense to do this?
+    public List<Float> calculateMotionSignature(Map<String, Motion> signatures) {
+        List<Float> signature = new ArrayList<Float>();
+        // TODO: go through signatures to calculation motion signature
+        return signature;
+    }
+
+    public Motion addDataToMotion(Motion motion, String type, String motionTime, File file) {
+        Uri uri = Uri.fromFile(file);
+        String fileData = readTextFromUri(uri);
+
+        if(motion == null) {
+            motion = new Motion(motionTime);
+        }
+        if(fileData != null && fileData.length() > 0) {
+            motion.addData(type, fileData);
+        }
+
+        //motion.calculateFeatures();
+        return motion;
+    }
+
+    public void writeSignatureFile(File dir, List<Float> motionSignature) {
+        BufferedWriter signatureFileStream = null;
+        StringBuilder builder = new StringBuilder();
+        File signatureFile = new File(dir, SIGNATURE_FILE);
+
+        try {
+            signatureFileStream = new BufferedWriter(new FileWriter(signatureFile));
+
+            for(int i = 0; i < motionSignature.size(); i++) {
+                builder.append(motionSignature.get(i));
+                if(i < motionSignature.size() - 1) {
+                    builder.append(",");
+                }
+            }
+            signatureFileStream.write(builder.toString());
+
+            signatureFileStream.close();
+        } catch (IOException e) {
+            Log.e("signature_file_error", "Failed to write signature file" + signatureFile.getName(), e);
+        }
+
+
+    }
+
 
     /**
      * Fires an intent to spin up the "file chooser" UI and select an image.
@@ -122,6 +292,9 @@ public class HomeWandActivity extends Activity {
 
                 String fileData = readTextFromUri(uri);
                 Log.i("file_data", fileData);
+                Intent intent = new Intent(this, FileActivity.class);
+                intent.putExtra(FILE_DATA_EXTRA, fileData);
+                startActivity(intent);
             }
         } else if (requestCode == DELETE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
 
@@ -148,6 +321,7 @@ public class HomeWandActivity extends Activity {
             String line;
             while ((line = reader.readLine()) != null) {
                 stringBuilder.append(line);
+                stringBuilder.append("\n");
             }
 
             reader.close();

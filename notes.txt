@@ -5,6 +5,7 @@ api 23
 - read papers?
 
 - make gyro work
+- Figure out sample rate
 - make sure there are newlines
 - save time with data
 - start running statistics on output

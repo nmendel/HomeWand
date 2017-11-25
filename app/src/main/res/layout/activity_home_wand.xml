@@ -43,6 +43,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
         android:background="@color/colorEnd"
+        android:onClick="calculateMotions"
         android:text="Calculate Motions" />
 
     <Space

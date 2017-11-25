@@ -26,6 +26,7 @@
         </activity>
         <activity android:name=".CaptureActivity"></activity>
         <activity android:name=".MotionActivity"></activity>
+        <activity android:name=".FileActivity"></activity>
 
         <provider
             android:name="edu.gmu.mendel.homewand.HomeWandDocumentsProvider"

@@ -1,7 +1,5 @@
 package edu.gmu.mendel.homewand;
 
-import android.content.Context;
-import android.content.Intent;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -17,29 +15,26 @@ import android.widget.TextView;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CaptureActivity extends AppCompatActivity implements SensorEventListener, View.OnClickListener {
-
-    public static final String ACCEL_HEADER = "x,y,z\n";
-    public static final String GYRO_HEADER = "x,y,z\n";
 
     private SensorManager sensorManager;
     private View view;
     protected TextView mTextField;
     protected EditText editText;
-    private boolean color = false;
     private boolean writing = false;
-    private long lastUpdate;
 
     private File accelFile;
     private File gyroFile;
     private BufferedWriter accelOutputStream;
     private BufferedWriter gyroOutputStream;
 
-    private int xx = 0;
+    private List<String> accelVals = new ArrayList<String>();
+    private List<String> gyroVals = new ArrayList<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,8 +43,6 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         setContentView(R.layout.activity_capture);
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        lastUpdate = System.currentTimeMillis();
-
         view = findViewById(R.id.captureTextView);
         view.setBackgroundColor(Color.WHITE);
 
@@ -74,10 +67,10 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         }
 
         EditText editText = (EditText) findViewById(R.id.editText);
-        String message = editText.getText().toString();
-        Log.i("2",message);
+        String motion = editText.getText().toString();
+        Log.i("2",motion);
 
-        File dir = new File(getFilesDir(), message);
+        File dir = new File(getFilesDir(), motion);
         if(!dir.exists()) {
             Log.i("3","mkdir");
             dir.mkdir();
@@ -91,12 +84,9 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
 
             accelFile = new File(dir, time + "-accel.csv");
             accelOutputStream = new BufferedWriter(new FileWriter(accelFile));
-            accelOutputStream.write(ACCEL_HEADER);
-
 
             gyroFile = new File(dir, time + "-gyro.csv");
             gyroOutputStream = new BufferedWriter(new FileWriter(gyroFile));
-            gyroOutputStream.write(GYRO_HEADER);
             writing = true;
         } catch (Exception e) {
             Log.e("error","failed to save file", e);
@@ -126,86 +116,57 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         Log.i("1","Pressed Stop");
 
         if(writing) {
-            writing = false;
-
             try {
                 accelOutputStream.close();
                 gyroOutputStream.close();
             } catch (IOException e) {
                 Log.e("error", "failed to save file", e);
             }
+
+            printVals();
+            accelVals.clear();
+            gyroVals.clear();
+            writing = false;
         }
     }
 
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            getAccelerometer(event);
-        }
-
-        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-            getGyroscope(event);
-        }
-
-    }
-
-    private void getAccelerometer(SensorEvent event) {
-        float[] values = event.values;
-        // Movement
-        float x = values[0];
-        float y = values[1];
-        float z = values[2];
-
-        float accelationSquareRoot = (x * x + y * y + z * z)
-                / (SensorManager.GRAVITY_EARTH * SensorManager.GRAVITY_EARTH);
-        long actualTime = event.timestamp;
-        if (accelationSquareRoot >= 2 || true) //
-        {
-            if (actualTime - lastUpdate < 200) {
-                return;
-            }
-            lastUpdate = actualTime;
-            if (color) {
-                view.setBackgroundColor(Color.GREEN);
-            } else {
-                view.setBackgroundColor(Color.RED);
-            }
-            color = !color;
-
-            if(writing) {
-                try {
-                    accelOutputStream.write(getValuesAsCsvRow(values));
-                } catch (Exception e) {
-                    Log.e("error", "failed to save file", e);
-                }
-            }
-        }
-
-    }
-
-    private void getGyroscope(SensorEvent event) {
-        float[] values = event.values;
-        String row = getValuesAsCsvRow(values);
-
         if(writing) {
-            try {
-                if (xx < 10) {
-                    view.setBackgroundColor(Color.DKGRAY);
-                    gyroOutputStream.write(row);
-                    xx++;
-                } else {
-                    view.setBackgroundColor(Color.CYAN);
-                    gyroOutputStream.write(row);
-                }
-            } catch (Exception e) {
-                Log.e("error", "failed to save file", e);
-            }
+            writeEvent(event);
         }
     }
 
-    public String getValuesAsCsvRow(float[] values) {
+    private void writeEvent(SensorEvent event) {
+        BufferedWriter writer = null;
+        String sensor = "";
+
+        String row = getValuesAsCsvRow(event.values, event.timestamp);
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            writer = accelOutputStream;
+            sensor = "accelerometer";
+            accelVals.add(row);
+        } else if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            writer = gyroOutputStream;
+            sensor = "gyro";
+            gyroVals.add(row);
+        }
+
+        //Log.i(sensor, row);
+
+        try {
+            writer.write(row);
+        } catch (IOException e) {
+            Log.e("error", "failed to write to file", e);
+        }
+    }
+
+    public String getValuesAsCsvRow(float[] values, long timestamp) {
         StringBuilder builder = new StringBuilder();
+        builder.append(timestamp + ",");
+
         for (int i = 0; i < values.length; i++) {
             builder.append(values[i]);
             if(i < values.length - 1) {
@@ -215,6 +176,15 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         builder.append("\n");
 
         return builder.toString();
+    }
+
+    public void printVals() {
+        for(String line : accelVals) {
+            Log.i("accel_vals", line);
+        }
+        for(String line : gyroVals) {
+            Log.i("gyro_vals", line);
+        }
     }
 
 
