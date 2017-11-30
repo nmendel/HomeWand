@@ -44,6 +44,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import weka.core.Instance;
+import weka.core.Instances;
+
 public class HomeWandActivity extends Activity {
 
     public static final String FILE_DATA_EXTRA = "file_data";
@@ -76,7 +79,7 @@ public class HomeWandActivity extends Activity {
         excludedFolders.add("abc");
 
         // prepare the signatures variable from pre-calculated signature files
-        doCalculateMotions(false);
+        //doCalculateMotions(false);
     }
 
     /** Called when the user taps the Start Capture button */
@@ -144,7 +147,12 @@ public class HomeWandActivity extends Activity {
         }
     }
 
+
+
+
     public void handleMotion(File dir, boolean overwriteExisting) {
+        //TODO: temporary
+        overwriteExisting = true;
         List<Float> motionSignature = null;
 
         // check for existing signature file in each motion directory
@@ -185,6 +193,8 @@ public class HomeWandActivity extends Activity {
         List<Float> motionSignature = new ArrayList<Float>();
         Map<String, Motion> motions = new HashMap<String, Motion>();
         File[] motionFiles = dir.listFiles();
+        Instances dataset = Motion.getDataset(dir.getName());
+
 
         // TODO: group gyro and accel files for each signature
         for (int i = 0; i < motionFiles.length; i++) {
@@ -195,62 +205,49 @@ public class HomeWandActivity extends Activity {
 
             // calculate signature for each file
             Motion motion = motions.get(fileTime);
-            motions.put(fileTime, addDataToMotion(motion, fileType, fileTime, motionFiles[i]));
+            Uri uri = Uri.fromFile(motionFiles[i]);
+            String fileData = readTextFromUri(uri);
+
+            if(motion == null) {
+                motion = new Motion(fileTime);
+            }
+            if(fileData != null && fileData.length() > 0) {
+                motion.addData(fileType, fileData);
+            }
+            motions.put(fileTime, motion);
         }
 
-        // calculate motion signature using all files and write it to signature file
-        motionSignature = calculateMotionSignature(motions);
-        // TODO: writing disabled
-        //writeSignatureFile(dir, motionSignature);
+        for(Motion motion : motions.values()) {
+            Instance inst = motion.getInstance();
+            dataset.add(inst);
+            //dataset.attribute(0).addStringValue(motionFiles[i].getName());
+        }
+
+        //Log.d("file_output", motions.toString());
+
+        Log.d("ARFF", dataset.toString());
+        writeSignatureFile(dir, dataset);
 
         return motionSignature;
     }
 
-    // TODO: doesn't make sense to do this?
-    public List<Float> calculateMotionSignature(Map<String, Motion> signatures) {
-        List<Float> signature = new ArrayList<Float>();
-        // TODO: go through signatures to calculation motion signature
-        return signature;
-    }
-
-    public Motion addDataToMotion(Motion motion, String type, String motionTime, File file) {
-        Uri uri = Uri.fromFile(file);
-        String fileData = readTextFromUri(uri);
-
-        if(motion == null) {
-            motion = new Motion(motionTime);
-        }
-        if(fileData != null && fileData.length() > 0) {
-            motion.addData(type, fileData);
-        }
-
-        //motion.calculateFeatures();
-        return motion;
-    }
-
-    public void writeSignatureFile(File dir, List<Float> motionSignature) {
+    public void writeSignatureFile(File dir, Instances dataset) {
         BufferedWriter signatureFileStream = null;
         StringBuilder builder = new StringBuilder();
         File signatureFile = new File(dir, SIGNATURE_FILE);
 
         try {
             signatureFileStream = new BufferedWriter(new FileWriter(signatureFile));
-
-            for(int i = 0; i < motionSignature.size(); i++) {
-                builder.append(motionSignature.get(i));
-                if(i < motionSignature.size() - 1) {
-                    builder.append(",");
-                }
-            }
+            builder.append(dataset.toString());
             signatureFileStream.write(builder.toString());
-
             signatureFileStream.close();
         } catch (IOException e) {
             Log.e("signature_file_error", "Failed to write signature file" + signatureFile.getName(), e);
         }
-
-
     }
+
+
+
 
 
     /**

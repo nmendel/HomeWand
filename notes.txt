@@ -4,12 +4,12 @@ api 23
 
 - read papers?
 
-- make gyro work
-- Figure out sample rate
-- make sure there are newlines
-- save time with data
-- start running statistics on output
-- button to recalculate all motions?
+- record at 128 Hz or 200Hz on sensor
+- filter output
+
+- spaces in arff files?
+- One or many ARFF files?
+- test weka with arff
 
 - record sounds
 - play sounds
@@ -20,3 +20,7 @@ api 23
 https://developer.android.com/guide/topics/providers/document-provider.html
 https://github.com/iPaulPro/aFileChooser
 https://developer.android.com/reference/android/os/CountDownTimer.html
+https://stackoverflow.com/questions/2257963/how-to-show-a-dialog-to-confirm-that-the-user-wishes-to-exit-an-android-activity
+http://www.java2s.com/Code/Java/Collections-Data-Structure/Retrivethequartilevaluefromanarray.htm
+
+platform-tools-latest-windows\platform-tools\adb.exe -s ZX1F222566 shell "run-as edu.gmu.mendel.homewand cat /data/data/edu.gmu.mendel.homewand/files/okGoogle/signature.csv" > signatures\okGoogle
