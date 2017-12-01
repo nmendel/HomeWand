@@ -7,7 +7,7 @@ api 23
 - record at 128 Hz or 200Hz on sensor
 - filter output
 
-- spaces in arff files?
+
 - One or many ARFF files?
 - test weka with arff
 

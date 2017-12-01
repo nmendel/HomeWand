@@ -50,7 +50,7 @@ import weka.core.Instances;
 public class HomeWandActivity extends Activity {
 
     public static final String FILE_DATA_EXTRA = "file_data";
-    public static final String SIGNATURE_FILE = "signature.csv";
+    public static final String SIGNATURE_FILE = "signature.arff";
     private static final int READ_REQUEST_CODE = 42;
     private static final int DELETE_REQUEST_CODE = 43;
 
@@ -75,8 +75,6 @@ public class HomeWandActivity extends Activity {
         view.setBackgroundColor(Color.LTGRAY);
 
         excludedFolders.add("instant-run");
-        excludedFolders.add("aaa");
-        excludedFolders.add("abc");
 
         // prepare the signatures variable from pre-calculated signature files
         //doCalculateMotions(false);

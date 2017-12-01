@@ -73,11 +73,11 @@ public class MotionActivity extends AppCompatActivity implements SensorEventList
         // accelerometer sensors
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                CaptureActivity.SAMPLING_128HZ);
 
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                CaptureActivity.SAMPLING_128HZ);
     }
 
     @Override
