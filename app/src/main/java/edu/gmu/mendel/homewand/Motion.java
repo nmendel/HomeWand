@@ -24,9 +24,13 @@ import weka.core.Instances;
 public class Motion {
 
     public static final int NUM_SENSOR_DIMENSIONS = 3;
-    public static final int TOTAL_NUM_FEATURES = 64;
+    public static final int TOTAL_NUM_FEATURES = 65;
+    public static final String ACCEL_TYPE = "accel";
+    public static final String GYRO_TYPE = "gyro";
 
     public String motionTime;
+    public String className;
+    public static Attribute classAttribute;
     public List<float[]> values = new ArrayList<float[]>();
 
     // low-pass filtered (1 Hz)
@@ -49,14 +53,15 @@ public class Motion {
     public float[] ACIQR = new float[6];
     public float[] ACRange = new float[6];
 
-    Motion(String motionTime) {
+    public Motion(String className, String motionTime) {
+        this.className = className;
         this.motionTime = motionTime;
     }
 
     public void addData(String type, String fileData) {
 
         String[] lines = fileData.split("\n");
-        for(int i = 0; i < lines.length; i++) {
+        for (int i = 0; i < lines.length; i++) {
             //Log.d("line", lines[i]);
             String[] splitLine = lines[i].split(",");
             Long time = new Long(splitLine[0]);
@@ -64,12 +69,25 @@ public class Motion {
             Float y = new Float(splitLine[2]);
             Float z = new Float(splitLine[3]);
 
-            values.add(new float[] {x.floatValue(), y.floatValue(), z.floatValue()});
+            values.add(new float[]{x.floatValue(), y.floatValue(), z.floatValue()});
         }
 
+        calculateFeatures(type);
+    }
+
+    public void addData(String type, List<List<Float>> data) {
+
+        for (List<Float> vals : data) {
+            values.add(new float[]{vals.get(1), vals.get(2), vals.get(3)});
+        }
+
+        calculateFeatures(type);
+    }
+
+    public void calculateFeatures(String type) {
         int offset = 0;
-        if(type.equals("gyro")) {
-            Log.i("fileType", "gyro");
+        if(type.equals(GYRO_TYPE)) {
+            Log.i("fileType", GYRO_TYPE);
             offset = NUM_SENSOR_DIMENSIONS;
         }
 
@@ -219,7 +237,6 @@ public class Motion {
                 fftInputs[i][j] = new Complex(0);
             }
 
-
             i++;
         }
 
@@ -313,12 +330,14 @@ public class Motion {
             }
         }
 
-        return new DenseInstance(1, values);
+        values[i] = 0.0;
+        DenseInstance inst = new DenseInstance(1, values);
+        inst.setValue(classAttribute, className);
+        return inst;
     }
 
-    public static Instances getDataset(String datasetName) {
+    public static Instances getDataset(String datasetName, List<String> motions) {
         FastVector atts = new FastVector();
-        //atts.addElement(new Attribute("filename", (FastVector) null));
         // - numeric
         atts.addElement(new Attribute("DCAreaAX"));
         atts.addElement(new Attribute("DCAreaAY"));
@@ -392,6 +411,10 @@ public class Motion {
         atts.addElement(new Attribute("ACRangeGX"));
         atts.addElement(new Attribute("ACRangeGY"));
         atts.addElement(new Attribute("ACRangeGZ"));
+
+        classAttribute = new Attribute("Class", motions);
+        //atts.addElement(new Attribute("filename", (FastVector) null));
+        atts.addElement(classAttribute);
 
         return new Instances(datasetName, atts, 0);
     }

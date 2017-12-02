@@ -1,7 +1,13 @@
+/*
+Document Provider code below adapted from:
+https://developer.android.com/guide/topics/providers/document-provider.html
+and
+https://github.com/iPaulPro/aFileChooser
+ */
+
 
 package edu.gmu.mendel.homewand;
 
-import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.database.MatrixCursor;

@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.TextView;
 
+// View a file on screen
 public class FileActivity extends AppCompatActivity {
 
     @Override

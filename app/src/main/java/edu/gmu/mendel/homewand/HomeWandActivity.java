@@ -1,19 +1,3 @@
-/*
- * Copyright (C) 2010 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package edu.gmu.mendel.homewand;
 
 import android.app.Activity;
@@ -32,14 +16,13 @@ import android.view.WindowManager;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,16 +36,9 @@ public class HomeWandActivity extends Activity {
     public static final String SIGNATURE_FILE = "signature.arff";
     private static final int READ_REQUEST_CODE = 42;
     private static final int DELETE_REQUEST_CODE = 43;
-
     private List<String> excludedFolders = new ArrayList<String>();
-    public Map<String, List<Float>> signatures = new HashMap<String, List<Float>>();
-    public FilenameFilter signatureFileFilter = new FilenameFilter() {
-        public boolean accept(File dir, String name) {
-            return name.equals(SIGNATURE_FILE);
-        }
-    };
 
-    /** Called when the activity is first created. */
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -74,33 +50,40 @@ public class HomeWandActivity extends Activity {
         View view = findViewById(R.id.textView);
         view.setBackgroundColor(Color.LTGRAY);
 
+        excludedFolders.add(SIGNATURE_FILE);
         excludedFolders.add("instant-run");
-
-        // prepare the signatures variable from pre-calculated signature files
-        //doCalculateMotions(false);
+        excludedFolders.add("abc");
     }
 
-    /** Called when the user taps the Start Capture button */
+    /**
+     * Start Capture button
+     */
     public void startCaptureActivity(View view) {
         Log.i("1","Pressed start capture");
         Intent intent = new Intent(this, CaptureActivity.class);
         startActivity(intent);
     }
 
-    /** Called when the user taps the Motion button */
+    /**
+     * Motion button
+     */
     public void startMotionActivity(View view) {
         Log.i("1","Pressed motion");
         Intent intent = new Intent(this, MotionActivity.class);
         startActivity(intent);
     }
 
-    /** Called when the user taps the View Data button */
+    /**
+     * View Data button
+     */
     public void openFile(View view) {
         Log.i("1","Pressed Open");
         performFileSearch();
     }
 
-    /** Called when the user taps the Delete Data button */
+    /**
+     * Delete Data button
+     */
     public void deleteFile(View view) {
         Log.i("1","Pressed Delete");
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
@@ -110,9 +93,13 @@ public class HomeWandActivity extends Activity {
         startActivityForResult(intent, DELETE_REQUEST_CODE);
     }
 
+    /**
+     * Calculate Motions button
+     */
     public void calculateMotions(View view) {
         Log.i("1","Pressed Calculate Motions");
 
+        // Are you sure popup
         new AlertDialog.Builder(this)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setTitle("Recalculate Motions")
@@ -121,7 +108,7 @@ public class HomeWandActivity extends Activity {
                 {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        doCalculateMotions(true);
+                        doCalculateMotions();
                     }
 
                 })
@@ -130,8 +117,15 @@ public class HomeWandActivity extends Activity {
 
     }
 
-    public void doCalculateMotions(boolean overwriteExisting) {
+    /**
+     * Loop through all sensor activity files in all motion folders
+     * Create motion objects for each accelerometer/gyroscope file pair
+     * Write an ARFF file for the dataset with each motion object as a row
+     */
+    public void doCalculateMotions() {
         Log.i("2","Calculate Motions");
+        List<String> motionNames = new ArrayList<String>();
+        List<Motion> allMotions = new ArrayList<Motion>();
         File[] files = getFilesDir().listFiles();
 
         // Loop through all non-excluded motion directories
@@ -139,75 +133,55 @@ public class HomeWandActivity extends Activity {
         for (int i = 0; i < files.length; i++)
         {
             if(!excludedFolders.contains(files[i].getName())) {
-                handleMotion(files[i], overwriteExisting);
+                // add all motion objects created from the files in the folder
+                allMotions.addAll(handleMotion(files[i]));
+                motionNames.add(files[i].getName());
             }
-
         }
+
+        // Create the dataset
+        Instances dataset = Motion.getDataset("HomeWand", motionNames);
+
+        // Add all instances to the dataset
+        for(Motion motion : allMotions) {
+            Instance inst = motion.getInstance();
+            dataset.add(inst);
+        }
+
+        //Log.d("file_output", motions.toString());
+
+        // Write the ARFF file to disk
+        Log.d("ARFF", dataset.toString());
+        writeSignatureFile(getFilesDir(), dataset);
     }
 
 
-
-
-    public void handleMotion(File dir, boolean overwriteExisting) {
-        //TODO: temporary
-        overwriteExisting = true;
-        List<Float> motionSignature = null;
-
-        // check for existing signature file in each motion directory
-        File[] existingSignatureFile = dir.listFiles(signatureFileFilter);
-
-        Log.i("Files", "Directory Name: " + dir.getName() + ", Number of files: " + existingSignatureFile.length);
-        if(existingSignatureFile.length > 0) {
-            if(!overwriteExisting) {
-                // If no overwriting, read the signature file into memory
-                motionSignature = readSignatureFile(existingSignatureFile[0]);
-
-            } else {
-                // otherwise, delete and recalculate the motion signature
-                existingSignatureFile[0].delete();
-                motionSignature = calculateDirectorySignature(dir);
-            }
-        } else {
-            motionSignature = calculateDirectorySignature(dir);
-        }
-
-        signatures.put(dir.getName(), motionSignature);
-    }
-
-    public List<Float> readSignatureFile(File signatureFile) {
-        List<Float> motionSignature = new ArrayList<Float>();
-        Uri uri = Uri.fromFile(signatureFile);
-        String[] splitVals = readTextFromUri(uri).split(",");
-
-        // read existing signature file into motionSignature variable
-        for(int i = 0; i < splitVals.length; i++) {
-            motionSignature.add(new Float(splitVals[i]));
-        }
-
-        return motionSignature;
-    }
-
-    public List<Float> calculateDirectorySignature(File dir) {
-        List<Float> motionSignature = new ArrayList<Float>();
+    /**
+     * Loop through the files in the folder for one motion
+     * Create Motion objects for each accelerometer/gyroscope file pair
+     */
+    public Collection<Motion> handleMotion(File dir) {
         Map<String, Motion> motions = new HashMap<String, Motion>();
         File[] motionFiles = dir.listFiles();
-        Instances dataset = Motion.getDataset(dir.getName());
 
 
-        // TODO: group gyro and accel files for each signature
         for (int i = 0; i < motionFiles.length; i++) {
+            // Get file timestamp
             String[] fileParts = motionFiles[i].getName().replace(".csv", "").split("-");
             String fileTime = fileParts[0];
             String fileType = fileParts[1];
             Log.i("Files", "FileTime:" + fileTime + ", fileType: " + fileType);
 
-            // calculate signature for each file
+            // See if we've already created a Motion for this timestamp (group file pairs)
             Motion motion = motions.get(fileTime);
+
+            // Read in the file
             Uri uri = Uri.fromFile(motionFiles[i]);
             String fileData = readTextFromUri(uri);
 
+            // calculate features for each file
             if(motion == null) {
-                motion = new Motion(fileTime);
+                motion = new Motion(dir.getName(), fileTime);
             }
             if(fileData != null && fileData.length() > 0) {
                 motion.addData(fileType, fileData);
@@ -215,29 +189,19 @@ public class HomeWandActivity extends Activity {
             motions.put(fileTime, motion);
         }
 
-        for(Motion motion : motions.values()) {
-            Instance inst = motion.getInstance();
-            dataset.add(inst);
-            //dataset.attribute(0).addStringValue(motionFiles[i].getName());
-        }
-
-        //Log.d("file_output", motions.toString());
-
-        Log.d("ARFF", dataset.toString());
-        writeSignatureFile(dir, dataset);
-
-        return motionSignature;
+        return motions.values();
     }
 
+    /**
+     * Write the dataset to disk as an ARFF file
+     */
     public void writeSignatureFile(File dir, Instances dataset) {
         BufferedWriter signatureFileStream = null;
-        StringBuilder builder = new StringBuilder();
         File signatureFile = new File(dir, SIGNATURE_FILE);
 
         try {
             signatureFileStream = new BufferedWriter(new FileWriter(signatureFile));
-            builder.append(dataset.toString());
-            signatureFileStream.write(builder.toString());
+            signatureFileStream.write(dataset.toString());
             signatureFileStream.close();
         } catch (IOException e) {
             Log.e("signature_file_error", "Failed to write signature file" + signatureFile.getName(), e);
@@ -245,9 +209,8 @@ public class HomeWandActivity extends Activity {
     }
 
 
-
-
-
+    // Document Provider code below adapted from:
+    // https://developer.android.com/guide/topics/providers/document-provider.html
     /**
      * Fires an intent to spin up the "file chooser" UI and select an image.
      */

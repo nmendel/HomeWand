@@ -2,13 +2,8 @@ android 5.1
 api 23
 
 
-- read papers?
 
-- record at 128 Hz or 200Hz on sensor
 - filter output
-
-
-- One or many ARFF files?
 - test weka with arff
 
 - record sounds
@@ -24,3 +19,7 @@ https://stackoverflow.com/questions/2257963/how-to-show-a-dialog-to-confirm-that
 http://www.java2s.com/Code/Java/Collections-Data-Structure/Retrivethequartilevaluefromanarray.htm
 
 platform-tools-latest-windows\platform-tools\adb.exe -s ZX1F222566 shell "run-as edu.gmu.mendel.homewand cat /data/data/edu.gmu.mendel.homewand/files/okGoogle/signature.csv" > signatures\okGoogle
+
+okGoogle - up then back down slowly
+weather - twist right all the way
+disney - twist left all the way
