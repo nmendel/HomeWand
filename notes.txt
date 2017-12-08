@@ -4,11 +4,15 @@ api 23
 
 
 - filter output
-- test weka with arff
 
-- record sounds
-- play sounds
+- record gestures
+- make it look cooler
+- get results from weka
+- decision tree to play sounds
 
+
+example time difference between sensor readings:
+7.06125 ms or maybe should be 7.8 ms? which is .008 s, should that be dt?
 
 /data/data/edu.gmu.mendel.homewand/files
 
@@ -17,9 +21,29 @@ https://github.com/iPaulPro/aFileChooser
 https://developer.android.com/reference/android/os/CountDownTimer.html
 https://stackoverflow.com/questions/2257963/how-to-show-a-dialog-to-confirm-that-the-user-wishes-to-exit-an-android-activity
 http://www.java2s.com/Code/Java/Collections-Data-Structure/Retrivethequartilevaluefromanarray.htm
+https://en.wikipedia.org/wiki/Low-pass_filter
+https://github.com/KalebKE/AccelerationExplorer/wiki/Low-Pass-Filter-Linear-Acceleration
+https://github.com/KalebKE/AccelerationExplorer/wiki/Advanced-Low-Pass-Filters
 
-platform-tools-latest-windows\platform-tools\adb.exe -s ZX1F222566 shell "run-as edu.gmu.mendel.homewand cat /data/data/edu.gmu.mendel.homewand/files/okGoogle/signature.csv" > signatures\okGoogle
-
+All actions move back to original position
 okGoogle - up then back down slowly
-weather - twist right all the way
-disney - twist left all the way
+weather - lift and twist right all the way
+disney - lift and twist left all the way
+coin - flip over on desk
+joke - move forward on desk and back
+schedule - move backward on desk, stay there
+news - move left on desk
+whatalbum - move right on desk
+
+turn clockwise on desk and back
+turn counter-clockwise on desk and back
+lift and twist away from self
+lift and twist towards self
+turn clockwise 360 on desk
+turn counter-clockwise 360 on desk
+lift then left and right (shake head no)
+lift and flip up-side down portrait
+lift high portrait
+lift in clockwise circular motion
+lift in counter-clockwise circular motion
+shake it like a salt shaker

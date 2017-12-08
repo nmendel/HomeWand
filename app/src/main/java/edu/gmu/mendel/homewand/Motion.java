@@ -32,6 +32,7 @@ public class Motion {
     public String className;
     public static Attribute classAttribute;
     public List<float[]> values = new ArrayList<float[]>();
+    public List<Long> times = new ArrayList<Long>();
 
     // low-pass filtered (1 Hz)
     public float[] DCArea = new float[6];
@@ -70,6 +71,7 @@ public class Motion {
             Float z = new Float(splitLine[3]);
 
             values.add(new float[]{x.floatValue(), y.floatValue(), z.floatValue()});
+            times.add(time);
         }
 
         calculateFeatures(type);
@@ -79,6 +81,7 @@ public class Motion {
 
         for (List<Float> vals : data) {
             values.add(new float[]{vals.get(1), vals.get(2), vals.get(3)});
+            times.add(vals.get(0).longValue());
         }
 
         calculateFeatures(type);
@@ -96,14 +99,39 @@ public class Motion {
     }
 
 
-    // TODO:
     // low-pass filtered (1 Hz)
     public void calculateLowPass(int offset) {
+
+        // TODO: var real α := dt / (RC + dt)
+
+        List<float[]> filteredValues = new ArrayList<float[]>();
+        int size = values.size();
+        float[] vals;
+        float[] filteredVals;
+
+        float alpha = .008f / (1 + .008f);
+
+        for (int i = 0; i < size; i++ ) {
+            vals = values.get(i);
+            filteredVals = new float[3];
+
+            if(i == 0) {
+                filteredVals[0] = alpha * vals[0];
+                filteredVals[1] = alpha * vals[1];
+                filteredVals[2] = alpha * vals[2];
+            } else {
+                filteredVals[0] = filteredValues.get(i - 1)[0] + alpha * (vals[0] - filteredValues.get(i - 1)[0]);
+                filteredVals[1] = filteredValues.get(i - 1)[1] + alpha * (vals[1] - filteredValues.get(i - 1)[1]);
+                filteredVals[2] = filteredValues.get(i - 1)[2] + alpha * (vals[2] - filteredValues.get(i - 1)[2]);
+            }
+            filteredValues.add(filteredVals);
+        }
+
         float sumX = 0;
         float sumY = 0;
         float sumZ = 0;
 
-        for (float[] line : values) {
+        for (float[] line : filteredValues) {
             sumX += line[0];
             sumY += line[1];
             sumZ += line[2];
@@ -115,12 +143,12 @@ public class Motion {
         DCArea[2 + offset] = sumZ;
 
         // Mean or average over the signal window
-        DCMean[0 + offset] = sumX / values.size();
-        DCMean[1 + offset] = sumY / values.size();
-        DCMean[2 + offset] = sumZ / values.size();
+        DCMean[0 + offset] = sumX / size;
+        DCMean[1 + offset] = sumY / size;
+        DCMean[2 + offset] = sumZ / size;
 
         // Same as DCMean but computed over the summation of all the acceleration signals over all axis
-        DCTotalMean[0 + (offset % 2)] = (sumX + sumY + sumZ) / values.size();
+        DCTotalMean[0 + (offset % 2)] = (sumX + sumY + sumZ) / size;
 
         // The differences between the mean values of the X-Y, X-Z, and Y-Z acceleration axis per sensor
         DCPostureDist[0 + offset] = DCMean[0 + offset] - DCMean[1 + offset];
@@ -132,9 +160,10 @@ public class Motion {
     // band-pass filtered (0.1-20 Hz)
     public void calculateBandPass(int offset) {
         float x,y,z;
-        Float[] xVals = new Float[values.size()];
-        Float[] yVals = new Float[values.size()];
-        Float[] zVals = new Float[values.size()];
+        int size = values.size();
+        Float[] xVals = new Float[size];
+        Float[] yVals = new Float[size];
+        Float[] zVals = new Float[size];
 
         float maxX = -1000;
         float minX = 10000;
@@ -151,7 +180,7 @@ public class Motion {
         float sumY = 0;
         float sumZ = 0;
 
-        for(int i = 0; i < values.size(); i++) {
+        for(int i = 0; i < size; i++) {
             x = values.get(i)[0];
             y = values.get(i)[1];
             z = values.get(i)[2];
@@ -197,9 +226,9 @@ public class Motion {
         ACTotalAbsArea[0 + (offset % 2)] = absSumX + absSumY + absSumZ;
 
         // Mean or average over the absolute value
-        float absMeanX = absSumX / values.size();
-        float absMeanY = absSumY / values.size();
-        float absMeanZ = absSumZ / values.size();
+        float absMeanX = absSumX / size;
+        float absMeanY = absSumY / size;
+        float absMeanZ = absSumZ / size;
         ACAbsMean[0 + offset] = absMeanX;
         ACAbsMean[1 + offset] = absMeanY;
         ACAbsMean[2 + offset] = absMeanZ;
@@ -260,9 +289,9 @@ public class Motion {
             j++;
         }
 
-        float meanX = sumX / values.size();
-        float meanY = sumY / values.size();
-        float meanZ = sumZ / values.size();
+        float meanX = sumX / size;
+        float meanY = sumY / size;
+        float meanZ = sumZ / size;
         float sqDiffX = 0;
         float sqDiffY = 0;
         float sqDiffZ = 0;
@@ -281,15 +310,15 @@ public class Motion {
         }
 
         // The variance of the accelerometer signal
-        ACVar[0 + offset] = sqDiffX / values.size();
-        ACVar[1 + offset] = sqDiffY / values.size();
-        ACVar[2 + offset] = sqDiffZ / values.size();
+        ACVar[0 + offset] = sqDiffX / size;
+        ACVar[1 + offset] = sqDiffY / size;
+        ACVar[2 + offset] = sqDiffZ / size;
 
         // Computed as the ratio of the standard deviation and the mean over each signal window multiplied by 100
         //                             ( std dev (       variance        ) ) /  ( mean )
-        double stdDevX = Math.sqrt(absSqDiffX / values.size());
-        double stdDevY = Math.sqrt(absSqDiffY / values.size());
-        double stdDevZ = Math.sqrt(absSqDiffZ / values.size());
+        double stdDevX = Math.sqrt(absSqDiffX / size);
+        double stdDevY = Math.sqrt(absSqDiffY / size);
+        double stdDevZ = Math.sqrt(absSqDiffZ / size);
         ACAbsCV[0 + offset] = (float)( stdDevX / absMeanX ) * 100;
         ACAbsCV[1 + offset] = (float)( stdDevY / absMeanY ) * 100;
         ACAbsCV[2 + offset] = (float)( stdDevZ / absMeanZ ) * 100;
