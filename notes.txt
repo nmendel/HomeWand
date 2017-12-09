@@ -2,17 +2,14 @@ android 5.1
 api 23
 
 
-
-- filter output
-
-- record gestures
+- comment code
+- make motion graphic
+- write paper
 - make it look cooler
-- get results from weka
-- decision tree to play sounds
+	- button placement
+	- logo
+	- gold plating
 
-
-example time difference between sensor readings:
-7.06125 ms or maybe should be 7.8 ms? which is .008 s, should that be dt?
 
 /data/data/edu.gmu.mendel.homewand/files
 
@@ -29,21 +26,24 @@ All actions move back to original position
 okGoogle - up then back down slowly
 weather - lift and twist right all the way
 disney - lift and twist left all the way
-coin - flip over on desk
 joke - move forward on desk and back
 schedule - move backward on desk, stay there
-news - move left on desk
-whatalbum - move right on desk
+news - move left on desk and back
+whatalbum - move right on desk then back
+scarystory - turn clockwise on desk and back
+soundpet - turn counter-clockwise on desk and back
+nature - turn clockwise 360 on desk
+rockmusic - turn counter-clockwise 360 on desk
+delivery - twist away from self with top resting on desk, then back down
+stop - shake it like a salt shaker twice, don't put down
+time - lift high portrait
+twentySidedDie - lift in clockwise circular motion, don't put down
+timer - lift in counter-clockwise circular motion, put down
+candy - lift and twist towards self, put down
+movieTimes - lift, face towards self, flip to landscape left, don't put down
+mickeyAdventure - lift then left and right, don't put down
+coin - flip over on desk to the left
 
-turn clockwise on desk and back
-turn counter-clockwise on desk and back
-lift and twist away from self
-lift and twist towards self
-turn clockwise 360 on desk
-turn counter-clockwise 360 on desk
-lift then left and right (shake head no)
-lift and flip up-side down portrait
-lift high portrait
-lift in clockwise circular motion
-lift in counter-clockwise circular motion
-shake it like a salt shaker
+
+
+

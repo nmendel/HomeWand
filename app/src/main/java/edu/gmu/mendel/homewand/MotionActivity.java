@@ -1,5 +1,6 @@
 package edu.gmu.mendel.homewand;
 
+import android.content.res.Resources;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -84,14 +85,8 @@ public class MotionActivity extends AppCompatActivity implements SensorEventList
     }
 
     public void issueCommand(String motion) {
-        MediaPlayer mp;
-        if(motion.equals(DecisionTree.okGoogle)) {
-            mp = MediaPlayer.create(getApplicationContext(), R.raw.okgoogle);
-        } else if(motion.equals(DecisionTree.weather)) {
-            mp = MediaPlayer.create(getApplicationContext(), R.raw.weather);
-        } else {
-            mp = MediaPlayer.create(getApplicationContext(), R.raw.disney);
-        }
+        int soundId = this.getResources().getIdentifier(motion, "raw", this.getPackageName());
+        MediaPlayer mp = MediaPlayer.create(getApplicationContext(), soundId);
         try {
             mp.start();
         } catch (Exception e) {

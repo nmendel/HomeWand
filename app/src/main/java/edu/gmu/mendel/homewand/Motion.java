@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import uk.me.berndporr.iirj.Butterworth;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.FastVector;
@@ -23,15 +24,19 @@ import weka.core.Instances;
 
 public class Motion {
 
+    public static final double SAMPLING_RATE = 128;
+    public static final int LOW_PASS = 0;
+    public static final int BAND_PASS = 1;
+    public static final int BAND_PASS_MID = 2;
     public static final int NUM_SENSOR_DIMENSIONS = 3;
-    public static final int TOTAL_NUM_FEATURES = 65;
+    public static final int TOTAL_NUM_FEATURES = 71;
     public static final String ACCEL_TYPE = "accel";
     public static final String GYRO_TYPE = "gyro";
 
     public String motionTime;
     public String className;
     public static Attribute classAttribute;
-    public List<float[]> values = new ArrayList<float[]>();
+    public List<float[]> rawValues = new ArrayList<float[]>();
     public List<Long> times = new ArrayList<Long>();
 
     // low-pass filtered (1 Hz)
@@ -40,9 +45,8 @@ public class Motion {
     public float[] DCTotalMean = new float[2]; // single value per sensor
     public float[] DCPostureDist = new float[6];
 
-    // TODO:
     // band-pass filtered (0-0.7 Hz)
-    public float[] ACLowEnergy;
+    public float[] ACLowEnergy = new float[6];
 
     // band-pass filtered (0.1-20 Hz)
     public float[] ACAbsArea = new float[6];
@@ -59,6 +63,43 @@ public class Motion {
         this.motionTime = motionTime;
     }
 
+    public String toString() {
+        String output = "";
+        output += Arrays.toString(DCArea) + "\n";
+        output += Arrays.toString(DCMean) + "\n";
+        output += Arrays.toString(DCTotalMean) + "\n";
+        output += Arrays.toString(DCPostureDist) + "\n";
+        output += Arrays.toString(ACLowEnergy) + "\n";
+        output += Arrays.toString(ACAbsArea) + "\n";
+        output += Arrays.toString(ACTotalAbsArea) + "\n";
+        output += Arrays.toString(ACAbsMean) + "\n";
+        output += Arrays.toString(ACEnergy) + "\n";
+        output += Arrays.toString(ACVar) + "\n";
+        output += Arrays.toString(ACAbsCV) + "\n";
+        output += Arrays.toString(ACIQR) + "\n";
+        output += Arrays.toString(ACRange);
+
+        return output;
+    }
+
+    public Instance getInstance() {
+        double[] features = new double[TOTAL_NUM_FEATURES];
+        int i = 0;
+        for(float[] vals : Arrays.asList(DCArea, DCMean, DCTotalMean, DCPostureDist, ACLowEnergy,
+                ACAbsArea, ACTotalAbsArea, ACAbsMean, ACEnergy,
+                ACVar, ACAbsCV, ACIQR, ACRange)) {
+            for(int j = 0; j < vals.length; j++) {
+                features[i] = vals[j];
+                i++;
+            }
+        }
+
+        features[i] = 0.0;
+        DenseInstance inst = new DenseInstance(1, features);
+        inst.setValue(classAttribute, className);
+        return inst;
+    }
+
     public void addData(String type, String fileData) {
 
         String[] lines = fileData.split("\n");
@@ -70,7 +111,7 @@ public class Motion {
             Float y = new Float(splitLine[2]);
             Float z = new Float(splitLine[3]);
 
-            values.add(new float[]{x.floatValue(), y.floatValue(), z.floatValue()});
+            rawValues.add(new float[]{x.floatValue(), y.floatValue(), z.floatValue()});
             times.add(time);
         }
 
@@ -80,7 +121,7 @@ public class Motion {
     public void addData(String type, List<List<Float>> data) {
 
         for (List<Float> vals : data) {
-            values.add(new float[]{vals.get(1), vals.get(2), vals.get(3)});
+            rawValues.add(new float[]{vals.get(1), vals.get(2), vals.get(3)});
             times.add(vals.get(0).longValue());
         }
 
@@ -89,47 +130,24 @@ public class Motion {
 
     public void calculateFeatures(String type) {
         int offset = 0;
-        if(type.equals(GYRO_TYPE)) {
+        if (type.equals(GYRO_TYPE)) {
             Log.i("fileType", GYRO_TYPE);
             offset = NUM_SENSOR_DIMENSIONS;
         }
 
         calculateLowPass(offset);
+        calculateACLowEnergy(offset);
         calculateBandPass(offset);
     }
 
 
     // low-pass filtered (1 Hz)
     public void calculateLowPass(int offset) {
-
-        // TODO: var real α := dt / (RC + dt)
-
-        List<float[]> filteredValues = new ArrayList<float[]>();
-        int size = values.size();
-        float[] vals;
-        float[] filteredVals;
-
-        float alpha = .008f / (1 + .008f);
-
-        for (int i = 0; i < size; i++ ) {
-            vals = values.get(i);
-            filteredVals = new float[3];
-
-            if(i == 0) {
-                filteredVals[0] = alpha * vals[0];
-                filteredVals[1] = alpha * vals[1];
-                filteredVals[2] = alpha * vals[2];
-            } else {
-                filteredVals[0] = filteredValues.get(i - 1)[0] + alpha * (vals[0] - filteredValues.get(i - 1)[0]);
-                filteredVals[1] = filteredValues.get(i - 1)[1] + alpha * (vals[1] - filteredValues.get(i - 1)[1]);
-                filteredVals[2] = filteredValues.get(i - 1)[2] + alpha * (vals[2] - filteredValues.get(i - 1)[2]);
-            }
-            filteredValues.add(filteredVals);
-        }
-
+        int size = rawValues.size();
         float sumX = 0;
         float sumY = 0;
         float sumZ = 0;
+        List<float[]> filteredValues = filter(LOW_PASS);
 
         for (float[] line : filteredValues) {
             sumX += line[0];
@@ -156,11 +174,69 @@ public class Motion {
         DCPostureDist[2 + offset] = DCMean[1 + offset] - DCMean[2 + offset];
     }
 
-    // TODO:
+    public void calculateACLowEnergy(int offset) {
+        int size = rawValues.size();
+        Float[] xVals = new Float[size];
+        Float[] yVals = new Float[size];
+        Float[] zVals = new Float[size];
+
+        List<float[]> filteredVals = filter(BAND_PASS_MID);
+
+        for(int i = 0; i < rawValues.size(); i++) {
+            xVals[i] = filteredVals.get(i)[0];
+            yVals[i] = filteredVals.get(i)[1];
+            zVals[i] = filteredVals.get(i)[2];
+        }
+
+        int i = 0;
+        Complex[][] fftInputs = new Complex[3][];
+
+        for(Float[] vals : Arrays.asList(xVals, yVals, zVals)) {
+            Float[] v = new Float[vals.length];
+            System.arraycopy(vals, 0, v, 0, vals.length);
+            Arrays.sort(v);
+
+            int fftInputLength = vals.length;
+            while(Integer.bitCount(fftInputLength) != 1) {
+                fftInputLength++;
+            }
+
+            fftInputs[i] = new Complex[fftInputLength];
+            for(int j = 0; j < vals.length; j++) {
+                fftInputs[i][j] = new Complex(vals[j].doubleValue());
+            }
+            for(int j = vals.length; j < fftInputLength; j++) {
+                fftInputs[i][j] = new Complex(0);
+            }
+
+            i++;
+        }
+
+        // It is computed as follows from the FFT coefficient magnitudes:
+        //   for i=1 to size/2 : magnitude ^ 2
+        FastFourierTransformer fftx = new FastFourierTransformer(DftNormalization.STANDARD);
+        Complex[] inputX = fftx.transform(fftInputs[0], TransformType.FORWARD);
+        FastFourierTransformer ffty = new FastFourierTransformer(DftNormalization.STANDARD);
+        Complex[] inputY = ffty.transform(fftInputs[1], TransformType.FORWARD);
+        FastFourierTransformer fftz = new FastFourierTransformer(DftNormalization.STANDARD);
+        Complex[] inputZ = fftz.transform(fftInputs[2], TransformType.FORWARD);
+
+        ACLowEnergy[0 + offset] = 0;
+        ACLowEnergy[1 + offset] = 0;
+        ACLowEnergy[2 + offset] = 0;
+        int j = 0;
+        for(Complex[] vals : Arrays.asList(inputX, inputY, inputZ)) {
+            for (int k = 1; k < (vals.length / 2); k++) {
+                ACLowEnergy[j + offset] += Math.pow(vals[k].getReal(), 2);
+            }
+            j++;
+        }
+    }
+
     // band-pass filtered (0.1-20 Hz)
     public void calculateBandPass(int offset) {
+        int size = rawValues.size();
         float x,y,z;
-        int size = values.size();
         Float[] xVals = new Float[size];
         Float[] yVals = new Float[size];
         Float[] zVals = new Float[size];
@@ -180,10 +256,12 @@ public class Motion {
         float sumY = 0;
         float sumZ = 0;
 
+        List<float[]> filteredVals = filter(BAND_PASS);
+
         for(int i = 0; i < size; i++) {
-            x = values.get(i)[0];
-            y = values.get(i)[1];
-            z = values.get(i)[2];
+            x = filteredVals.get(i)[0];
+            y = filteredVals.get(i)[1];
+            z = filteredVals.get(i)[2];
 
             xVals[i] = x;
             yVals[i] = y;
@@ -300,7 +378,7 @@ public class Motion {
         float absSqDiffZ = 0;
 
         // loop again to compute the variance
-        for(float[] line : values) {
+        for(float[] line : filteredVals) {
             sqDiffX += Math.pow(line[0] - meanX, 2);
             sqDiffY += Math.pow(line[1] - meanY, 2);
             sqDiffZ += Math.pow(line[2] - meanZ, 2);
@@ -327,42 +405,40 @@ public class Motion {
         if(absMeanZ == 0) { ACAbsCV[2 + offset] = 0.0f; }
     }
 
-    public String toString() {
-        String output = "";
-        output += Arrays.toString(DCArea) + "\n";
-        output += Arrays.toString(DCMean) + "\n";
-        output += Arrays.toString(DCTotalMean) + "\n";
-        output += Arrays.toString(DCPostureDist) + "\n";
-        //output += Arrays.toString(ACLowEnergy) + "\n";
-        output += Arrays.toString(ACAbsArea) + "\n";
-        output += Arrays.toString(ACTotalAbsArea) + "\n";
-        output += Arrays.toString(ACAbsMean) + "\n";
-        output += Arrays.toString(ACEnergy) + "\n";
-        output += Arrays.toString(ACVar) + "\n";
-        output += Arrays.toString(ACAbsCV) + "\n";
-        output += Arrays.toString(ACIQR) + "\n";
-        output += Arrays.toString(ACRange);
+    public List<float[]> filter(int type) {
+        float[] vals;
+        float[] filteredVals;
+        List<float[]> filteredValues = new ArrayList<float[]>();
 
-        return output;
-    }
+        Butterworth butterworthX = new Butterworth();
+        Butterworth butterworthY = new Butterworth();
+        Butterworth butterworthZ = new Butterworth();
 
-    public Instance getInstance() {
-        double[] values = new double[TOTAL_NUM_FEATURES];
-        int i = 0;
-        // TODO: aclowenergy
-        for(float[] vals : Arrays.asList(DCArea, DCMean, DCTotalMean, DCPostureDist,//        ACLowEnergy;
-                                         ACAbsArea, ACTotalAbsArea, ACAbsMean, ACEnergy,
-                                         ACVar, ACAbsCV, ACIQR, ACRange)) {
-            for(int j = 0; j < vals.length; j++) {
-                values[i] = vals[j];
-                i++;
-            }
+        if (type == LOW_PASS) {
+            butterworthX.lowPass(3, SAMPLING_RATE, 1);
+            butterworthY.lowPass(3, SAMPLING_RATE, 1);
+            butterworthZ.lowPass(3, SAMPLING_RATE, 1);
+        } else if (type == BAND_PASS) {
+            butterworthX.bandPass(3, SAMPLING_RATE, 10.05, 9.05);
+            butterworthY.bandPass(3, SAMPLING_RATE, 10.05, 9.05);
+            butterworthZ.bandPass(3, SAMPLING_RATE, 10.05, 9.05);
+        } else {
+            butterworthX.bandPass(3, SAMPLING_RATE, 0.35, 0.35);
+            butterworthY.bandPass(3, SAMPLING_RATE, 0.35, 0.35);
+            butterworthZ.bandPass(3, SAMPLING_RATE, 0.35, 0.35);
         }
 
-        values[i] = 0.0;
-        DenseInstance inst = new DenseInstance(1, values);
-        inst.setValue(classAttribute, className);
-        return inst;
+        for (int i = 0; i < rawValues.size(); i++) {
+            vals = rawValues.get(i);
+            filteredVals = new float[3];
+
+            filteredVals[0] = (float) butterworthX.filter((double) vals[0]);
+            filteredVals[1] = (float) butterworthY.filter((double) vals[1]);
+            filteredVals[2] = (float) butterworthZ.filter((double) vals[2]);
+            filteredValues.add(filteredVals);
+        }
+
+        return filteredValues;
     }
 
     public static Instances getDataset(String datasetName, List<String> motions) {
@@ -388,14 +464,12 @@ public class Motion {
         atts.addElement(new Attribute("DCPostureDistGX"));
         atts.addElement(new Attribute("DCPostureDistGY"));
         atts.addElement(new Attribute("DCPostureDistGZ"));
-        /*
         atts.addElement(new Attribute("ACLowEnergyAX"));
         atts.addElement(new Attribute("ACLowEnergyAY"));
         atts.addElement(new Attribute("ACLowEnergyAZ"));
         atts.addElement(new Attribute("ACLowEnergyGX"));
         atts.addElement(new Attribute("ACLowEnergyGY"));
         atts.addElement(new Attribute("ACLowEnergyGZ"));
-        */
         atts.addElement(new Attribute("ACAbsAreaAX"));
         atts.addElement(new Attribute("ACAbsAreaAY"));
         atts.addElement(new Attribute("ACAbsAreaAZ"));
@@ -447,5 +521,4 @@ public class Motion {
 
         return new Instances(datasetName, atts, 0);
     }
-
 }

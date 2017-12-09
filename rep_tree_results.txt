@@ -1,125 +1,3 @@
-package edu.gmu.mendel.homewand;
-
-public class DecisionTree {
-
-    public static final int AX = 0;
-    public static final int AY = 1;
-    public static final int AZ = 2;
-    public static final int GX = 3;
-    public static final int GY = 4;
-    public static final int GZ = 5;
-
-    public static final String okGoogle = "okgoogle";
-    public static final String weather = "weather";
-    public static final String disney = "disney";
-    public static final String coin = "coin";
-    public static final String joke = "joke";
-    public static final String schedule = "schedule";
-    public static final String news = "news";
-    public static final String whatalbum = "whatalbum";
-    public static final String soundpet = "soundpet";
-    public static final String scarystory = "scarystory";
-    public static final String nature = "nature";
-    public static final String rockmusic = "rockmusic";
-    public static final String delivery = "delivery";
-    public static final String stop = "stop";
-    public static final String time = "time";
-    public static final String twentysideddie = "twentysideddie";
-    public static final String timer = "timer";
-    public static final String candy = "candy";
-    public static final String mickeyadventure = "mickeyadventure";
-    public static final String movietimes = "movietimes";
-
-
-    public static String classify(Motion motion) {
-        // This is both the most useful and most error prone command, so make it the default
-        String result = okGoogle;
-
-        if(motion.DCMean[GZ] < 5.15) {
-            if (motion.DCArea[AY] < 650.64) {
-                if (motion.DCArea[GY] < 49.75) {
-                    if (motion.DCArea[AX] < 30.44) {
-                        result = delivery;
-                    } else if (motion.DCArea[AX] >= 30.44) {
-                        if (motion.DCArea[AZ] < 903.35) {
-                            result = coin;
-                        } else if (motion.DCArea[AZ] >= 903.35) {
-                            result = disney;
-                        }
-                    }
-                } else if (motion.DCArea[GY] >= 49.75) {
-                    if (motion.DCArea[AX] < -3.55) {
-                        result = weather;
-                    } else if (motion.DCArea[AX] >= -3.55) {
-                        result = nature;
-                    }
-                }
-            } else if (motion.DCArea[AY] >= 650.64) {
-                if (motion.ACLowEnergy[GX] < 75408.97) {
-                    if (motion.DCArea[AY] < 1846.04) {
-                        result = stop;
-                    } else if (motion.DCArea[AY] >= 1846.04) {
-                        result = time;
-                    }
-                } else if (motion.ACLowEnergy[GX] >= 75408.97) {
-                    if (motion.DCArea[AX] < 793.85) {
-                        result = candy;
-                    }
-                    if (motion.DCArea[AX] >= 793.85) {
-                        result = movietimes;
-                    }
-                }
-            }
-        } else if(motion.DCMean[GZ] >= 5.15) {
-            if(motion.DCArea[AY] < 98.73) {
-                if(motion.ACLowEnergy[AX] < 2481.33) {
-                    if(motion.ACIQR[AX] < 0.03) {
-                        result = schedule;
-                    } else if(motion.ACIQR[AX] >= 0.03) {
-                        if(motion.DCArea[AY] < 80.99) {
-                            result = joke;
-                        } else if(motion.DCArea[AY] >= 80.99) {
-                            result = soundpet;
-                        }
-                    }
-                } else if(motion.ACLowEnergy[AX] >= 2481.33) {
-                    if(motion.DCArea[AY] < 63.44) {
-                        result = whatalbum;
-                    }
-                    if(motion.DCArea[AY] >= 63.44) {
-                        result = news;
-                    }
-                }
-            } else if(motion.DCArea[AY] >= 98.73) {
-                if(motion.ACLowEnergy[AZ] < 321730.52) {
-                    if(motion.DCArea[GY] < 149.99) {
-                        result = scarystory;
-                    } else if(motion.DCArea[GY] >= 149.99) {
-                        if(motion.DCArea[AZ] < 4037.98) {
-                            result = rockmusic;
-                        } else if(motion.DCArea[AZ] >= 4037.98) {
-                            result = mickeyadventure;
-                        }
-                    }
-                } else if(motion.ACLowEnergy[AZ] >= 321730.52) {
-                    if(motion.ACIQR[AX] < 0.11) {
-                        result = okGoogle;
-                    } else if(motion.ACIQR[AX] >= 0.11) {
-                        if(motion.DCArea[AY] < 314.85) {
-                            result = timer;
-                        } else if(motion.DCArea[AY] >= 314.85) {
-                            result = twentysideddie;
-                        }
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
-}
-
-/*
 === Run information ===
 
 Scheme:       weka.classifiers.trees.REPTree -M 2 -V 0.001 -N 3 -S 1 -L -1 -I 0.0
@@ -258,7 +136,7 @@ Mean absolute error                      0.0121
 Root mean squared error                  0.0936
 Relative absolute error                 12.7143 %
 Root relative squared error             42.9663 %
-Total Number of Instances              399
+Total Number of Instances              399     
 
 === Detailed Accuracy By Class ===
 
@@ -283,7 +161,7 @@ Total Number of Instances              399
                  0.900    0.008    0.857      0.900    0.878      0.872    0.946     0.807     candy
                  0.900    0.000    1.000      0.900    0.947      0.946    0.999     0.984     mickeyAdventure
                  0.950    0.000    1.000      0.950    0.974      0.973    0.974     0.953     movieTimes
-Weighted Avg.    0.905    0.005    0.911      0.905    0.906      0.902    0.968     0.881
+Weighted Avg.    0.905    0.005    0.911      0.905    0.906      0.902    0.968     0.881     
 
 === Confusion Matrix ===
 
@@ -309,5 +187,3 @@ Weighted Avg.    0.905    0.005    0.911      0.905    0.906      0.902    0.968
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  2  0  0 18  0 |  s = mickeyAdventure
   0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  1  0 19 |  t = movieTimes
 
-
- */

@@ -27,4 +27,5 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
     implementation files('libs/commons-math3-3.6.1.jar')
     implementation files('libs/weka.jar')
+    implementation files('libs/iirj-1.0.jar')
 }
