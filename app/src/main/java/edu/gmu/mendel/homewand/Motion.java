@@ -1,9 +1,5 @@
 package edu.gmu.mendel.homewand;
 
-/**
- * Created by 575724 on 11/24/2017.
- */
-
 import android.util.Log;
 
 import org.apache.commons.math3.complex.Complex;
@@ -22,6 +18,11 @@ import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
 
+/**
+ * An object to hold the raw data for a motion event
+ * Adding the data calculates the features from that data
+ * Each Motion object is designed to have one file for each sensor (accelerometer and gyroscope)
+ */
 public class Motion {
 
     public static final double SAMPLING_RATE = 128;
@@ -39,6 +40,7 @@ public class Motion {
     public List<float[]> rawValues = new ArrayList<float[]>();
     public List<Long> times = new ArrayList<Long>();
 
+    // Features to calculate
     // low-pass filtered (1 Hz)
     public float[] DCArea = new float[6];
     public float[] DCMean = new float[6];
@@ -63,6 +65,9 @@ public class Motion {
         this.motionTime = motionTime;
     }
 
+    /**
+     * print the features
+     */
     public String toString() {
         String output = "";
         output += Arrays.toString(DCArea) + "\n";
@@ -82,6 +87,9 @@ public class Motion {
         return output;
     }
 
+    /**
+     * Create an Instance object from the features to add to an WEKA Dataset
+     */
     public Instance getInstance() {
         double[] features = new double[TOTAL_NUM_FEATURES];
         int i = 0;
@@ -100,6 +108,11 @@ public class Motion {
         return inst;
     }
 
+    /**
+     * TODO:
+     * @param type
+     * @param fileData
+     */
     public void addData(String type, String fileData) {
 
         String[] lines = fileData.split("\n");

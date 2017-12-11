@@ -56,7 +56,7 @@ public class HomeWandActivity extends Activity {
     }
 
     /**
-     * Start Capture button
+     * Start Capture button, run CaptureActivity
      */
     public void startCaptureActivity(View view) {
         Log.i("1","Pressed start capture");
@@ -65,7 +65,7 @@ public class HomeWandActivity extends Activity {
     }
 
     /**
-     * Motion button
+     * Motion button, run MotionActivity
      */
     public void startMotionActivity(View view) {
         Log.i("1","Pressed motion");
@@ -74,7 +74,7 @@ public class HomeWandActivity extends Activity {
     }
 
     /**
-     * View Data button
+     * View Data button, run FileActivity
      */
     public void openFile(View view) {
         Log.i("1","Pressed Open");
@@ -82,7 +82,7 @@ public class HomeWandActivity extends Activity {
     }
 
     /**
-     * Delete Data button
+     * Delete Data button, show file explorer and delete the selected file
      */
     public void deleteFile(View view) {
         Log.i("1","Pressed Delete");
@@ -94,7 +94,7 @@ public class HomeWandActivity extends Activity {
     }
 
     /**
-     * Calculate Motions button
+     * Calculate Motions button, if user is sure, call doCalculateMotions
      */
     public void calculateMotions(View view) {
         Log.i("1","Pressed Calculate Motions");

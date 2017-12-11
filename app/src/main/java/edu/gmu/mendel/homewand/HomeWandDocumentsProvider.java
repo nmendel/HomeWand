@@ -33,7 +33,6 @@ import static android.provider.DocumentsContract.Document.FLAG_SUPPORTS_DELETE;
 
 public class HomeWandDocumentsProvider extends DocumentsProvider {
 
-    //public static final String AUTHORITY = "com.ianhanniballake.localstorage.documents";
     public static final String AUTHORITY = "edu.gmu.mendel.homewand.files";
 
     /**

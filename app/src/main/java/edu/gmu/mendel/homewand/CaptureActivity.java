@@ -20,8 +20,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Capture the accelerometer and gyroscope data at 128 Hz
+ * for 3 seconds upon the start button being pressed
+ */
 public class CaptureActivity extends AppCompatActivity implements SensorEventListener, View.OnClickListener {
 
+    // 128 Hz converted to ms
     public static final int SAMPLING_128HZ = 7812;
 
     private SensorManager sensorManager;
@@ -38,6 +43,9 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
     private List<String> accelVals = new ArrayList<String>();
     private List<String> gyroVals = new ArrayList<String>();
 
+    /**
+     * Initialization
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i("3","start_activity");
@@ -56,12 +64,17 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         editText.setOnClickListener(this);
     }
 
-
+    /**
+     * Clear the text when it is clicked
+     */
     @Override
     public void onClick(View v) {
         editText.getText().clear();
     }
 
+    /**
+     * Start writing sensor data to file
+     */
     public void startCapture(View view) {
         Log.i("1","Pressed Start");
         if(writing) {
@@ -95,11 +108,13 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         }
 
         // Start up a timer for the capture
+        // Show it on the screen
         new CountDownTimer(3000, 100) {
             public void onTick(long millisUntilFinished) {
                 mTextField.setText(String.format("%.1f",  (double)millisUntilFinished / 1000));
             }
 
+            // Stop capturing sensor data when it ends
             public void onFinish() {
                 mTextField.setText("Stopped");
                 if(writing) {
@@ -109,11 +124,16 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         }.start();
     }
 
-    /** Called when the user taps the Stop Capture button */
+    /**
+     * Stop Capture button
+     * */
     public void stopCapture(View view) {
         stopCapture();
     }
 
+    /**
+     * Finish writing the sensor data files, set writing to false
+     */
     public void stopCapture() {
         Log.i("1","Pressed Stop");
 
@@ -132,7 +152,10 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         }
     }
 
-
+    /**
+     * This is how sensor data comes in in android
+     * @param event
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
         if(writing) {
@@ -140,6 +163,10 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         }
     }
 
+    /**
+     * Write the sensor event to the right file
+     * @param event
+     */
     private void writeEvent(SensorEvent event) {
         BufferedWriter writer = null;
         String sensor = "";
@@ -165,6 +192,9 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         }
     }
 
+    /**
+     * Get sensor values as a String csv row
+     */
     public String getValuesAsCsvRow(float[] values, long timestamp) {
         StringBuilder builder = new StringBuilder();
         builder.append(timestamp + ",");
@@ -180,6 +210,9 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
         return builder.toString();
     }
 
+    /**
+     * Print the values to log
+     */
     public void printVals() {
         for(String line : accelVals) {
             Log.i("accel_vals", line);
@@ -190,6 +223,9 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
     }
 
 
+    /**
+     * required android method
+     */
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
@@ -198,8 +234,6 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
     @Override
     protected void onResume() {
         super.onResume();
-        // register this class as a listener for the orientation and
-        // accelerometer sensors
         sensorManager.registerListener(this,
                 sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
                 SAMPLING_128HZ);
@@ -211,7 +245,6 @@ public class CaptureActivity extends AppCompatActivity implements SensorEventLis
 
     @Override
     protected void onPause() {
-        // unregister listener
         super.onPause();
         sensorManager.unregisterListener(this);
     }

@@ -1,7 +1,11 @@
 package edu.gmu.mendel.homewand;
 
+/**
+ * Decision tree for deciding what action a Motion object represents
+ */
 public class DecisionTree {
 
+    // sensor/axis indexes
     public static final int AX = 0;
     public static final int AY = 1;
     public static final int AZ = 2;
@@ -9,6 +13,7 @@ public class DecisionTree {
     public static final int GY = 4;
     public static final int GZ = 5;
 
+    // constants for all of the possible actions
     public static final String okGoogle = "okgoogle";
     public static final String weather = "weather";
     public static final String disney = "disney";
@@ -31,6 +36,10 @@ public class DecisionTree {
     public static final String movietimes = "movietimes";
 
 
+    /**
+     * Classify the motion object
+     * Coded version of the results of REP Tree from WEKA
+     */
     public static String classify(Motion motion) {
         // This is both the most useful and most error prone command, so make it the default
         String result = okGoogle;
@@ -120,6 +129,8 @@ public class DecisionTree {
 }
 
 /*
+REP Tree results from WEKA
+
 === Run information ===
 
 Scheme:       weka.classifiers.trees.REPTree -M 2 -V 0.001 -N 3 -S 1 -L -1 -I 0.0

@@ -1,12 +1,10 @@
 package edu.gmu.mendel.homewand;
 
-import android.content.res.Resources;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v7.app.AppCompatActivity;
@@ -14,14 +12,17 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Capture the user's motion
+ * classify it
+ * play the associated audio file
+ */
 public class MotionActivity extends AppCompatActivity implements SensorEventListener {
 
     private SensorManager sensorManager;
-    private View view;
     protected TextView mTextField;
 
     private boolean writing = false;
@@ -39,6 +40,9 @@ public class MotionActivity extends AppCompatActivity implements SensorEventList
         mTextField = findViewById(R.id.motionView);
     }
 
+    /**
+     * Capture motion for 3 seconds
+     */
     public void startMotion(View view) {
         Log.i("1","Pressed Start");
         if(writing) {
@@ -76,6 +80,9 @@ public class MotionActivity extends AppCompatActivity implements SensorEventList
         stopMotion();
     }
 
+    /**
+     * classify the motion and play the correct audio file
+     */
     public void stopMotion() {
         if(writing) {
             writing = false;
@@ -84,6 +91,10 @@ public class MotionActivity extends AppCompatActivity implements SensorEventList
         }
     }
 
+    /**
+     * Play the audio file with the passed in name
+     * No real error checking, it is assumed that the file exists
+     */
     public void issueCommand(String motion) {
         int soundId = this.getResources().getIdentifier(motion, "raw", this.getPackageName());
         MediaPlayer mp = MediaPlayer.create(getApplicationContext(), soundId);
@@ -94,6 +105,11 @@ public class MotionActivity extends AppCompatActivity implements SensorEventList
         }
     }
 
+    /**
+     * Create a Motion object with the collected sensor data
+     * Use the decision tree to classify it
+     * Return a String of the motion name
+     */
     public String classifyMotion() {
         // what motion was it??
         Motion motion = new Motion("unknown", timestamp + "");
@@ -108,6 +124,10 @@ public class MotionActivity extends AppCompatActivity implements SensorEventList
         return result;
     }
 
+    /**
+     * Capture sensor data, copied from CaptureActivity
+     * Doesn't write to a file though
+     */
     @Override
     public void onSensorChanged(SensorEvent event) {
         if(writing) {
