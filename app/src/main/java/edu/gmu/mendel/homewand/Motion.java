@@ -109,9 +109,9 @@ public class Motion {
     }
 
     /**
-     * TODO:
-     * @param type
-     * @param fileData
+     * Add a file of recorded sensor data to the Motion object
+     * Each row should look like:
+     * timestamp,x,y,z
      */
     public void addData(String type, String fileData) {
 
@@ -131,6 +131,11 @@ public class Motion {
         calculateFeatures(type);
     }
 
+    /**
+     * Add a file of recorded sensor data to the Motion object
+     * Each data entry should have 4 values:
+     * timestamp,x,y,z
+     */
     public void addData(String type, List<List<Float>> data) {
 
         for (List<Float> vals : data) {
@@ -141,6 +146,11 @@ public class Motion {
         calculateFeatures(type);
     }
 
+    /**
+     * Calculate the features which are organized by their filters
+     * If the data is for the gyroscope, offset the values in the
+     * arrays by 2.
+     */
     public void calculateFeatures(String type) {
         int offset = 0;
         if (type.equals(GYRO_TYPE)) {
@@ -153,8 +163,9 @@ public class Motion {
         calculateBandPass(offset);
     }
 
-
-    // low-pass filtered (1 Hz)
+    /**
+     * Calculate the features requiring a low-pass filter at 1 Hz
+     */
     public void calculateLowPass(int offset) {
         int size = rawValues.size();
         float sumX = 0;
@@ -187,6 +198,9 @@ public class Motion {
         DCPostureDist[2 + offset] = DCMean[1 + offset] - DCMean[2 + offset];
     }
 
+    /**
+     * Calculate ACLowEnergy which requires a band-pass filter between 0 and .7 Hz
+     */
     public void calculateACLowEnergy(int offset) {
         int size = rawValues.size();
         Float[] xVals = new Float[size];
@@ -246,7 +260,9 @@ public class Motion {
         }
     }
 
-    // band-pass filtered (0.1-20 Hz)
+    /**
+     * Calculate ACLowEnergy which requires a band-pass filter between 0.1 and 20 Hz
+     */
     public void calculateBandPass(int offset) {
         int size = rawValues.size();
         float x,y,z;
@@ -418,6 +434,9 @@ public class Motion {
         if(absMeanZ == 0) { ACAbsCV[2 + offset] = 0.0f; }
     }
 
+    /**
+     * Filter the rawValues using one of 3 filters
+     */
     public List<float[]> filter(int type) {
         float[] vals;
         float[] filteredVals;
@@ -454,6 +473,9 @@ public class Motion {
         return filteredValues;
     }
 
+    /**
+     * Get the weka Instances object for Motion objects
+     */
     public static Instances getDataset(String datasetName, List<String> motions) {
         FastVector atts = new FastVector();
         // - numeric

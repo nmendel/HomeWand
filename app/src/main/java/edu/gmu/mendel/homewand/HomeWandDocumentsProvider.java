@@ -68,7 +68,6 @@ public class HomeWandDocumentsProvider extends DocumentsProvider {
         row.add(Root.COLUMN_ROOT_ID, homeDir.getAbsolutePath());
         row.add(Root.COLUMN_DOCUMENT_ID, homeDir.getAbsolutePath());
         row.add(Root.COLUMN_TITLE, getContext().getString(R.string.internal_storage));
-        // TODO: delete
         row.add(Root.COLUMN_FLAGS, Root.FLAG_LOCAL_ONLY | Root.FLAG_SUPPORTS_CREATE | FLAG_SUPPORTS_DELETE);
         row.add(Root.COLUMN_ICON, R.drawable.ic_provider);
         // These columns are optional
