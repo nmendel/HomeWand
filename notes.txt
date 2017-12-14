@@ -2,7 +2,6 @@ android 5.1
 api 23
 
 
-- comment code
 - make motion graphic
 - write paper
 - make it look cooler
